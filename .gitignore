@@ -1,0 +1,13 @@
+node_modules/
+dist/
+keys/
+*.pem
+publish.config.json
+game-test/
+release-local/
+*.log
+
+# Gradle (server/)
+server/**/build/
+server/**/.gradle/
+server/**/run/

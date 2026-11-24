@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "date": "2026-11-24",
+      "tag": { "ru": "Лаунчер", "en": "Launcher" },
+      "title": { "ru": "Запустили лаунчер", "en": "The launcher is live" },
+      "text": {
+        "ru": "Теперь сборка ставится и обновляется сама. Нажмите «Играть» — остальное лаунчер сделает за вас.",
+        "en": "The modpack now installs and updates itself. Press Play and the launcher does the rest."
+      },
+      "image": ""
+    }
+  ]
+}

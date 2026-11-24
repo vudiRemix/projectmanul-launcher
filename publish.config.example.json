@@ -1,0 +1,31 @@
+{
+  "repo": "vudiRemix/projectmanul-launcher",
+  "source": "C:/Users/Admin/Documents/client-build",
+  "include": [
+    "mods",
+    "config",
+    "defaultconfigs",
+    "resourcepacks",
+    "options.txt"
+  ],
+  "exclude": [
+    "**/*.bak",
+    "**/*.disabled",
+    "**/Thumbs.db",
+    "**/.DS_Store"
+  ],
+  "once": [
+    "options.txt",
+    "config/**/*-client.toml"
+  ],
+  "cleanDirs": [
+    "mods"
+  ],
+  "minecraft": "1.20.1",
+  "forge": "47.3.0",
+  "privateKey": "keys/manifest-private.pem",
+  "launcher": {
+    "version": "1.0.0",
+    "installer": ""
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "name": "projectmanul-launcher",
+  "productName": "Project Manul Launcher",
+  "version": "1.0.0",
+  "description": "Лаунчер милсим-сервера: установка сборки, проверка файлов и запуск Minecraft 1.20.1 + Forge",
+  "main": "src/main/main.js",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/core.test.js",
+    "cli": "node src/cli.js",
+    "keygen": "node tools/keygen.js",
+    "release": "node tools/publish.js",
+    "dist": "electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.projectmanul.launcher",
+    "productName": "Project Manul Launcher",
+    "directories": {
+      "output": "dist"
+    },
+    "compression": "maximum",
+    "electronLanguages": [
+      "ru",
+      "en-US"
+    ],
+    "files": [
+      "src/**/*",
+      "launcher.config.json",
+      "node_modules/@fontsource/pixelify-sans/**/*",
+      "node_modules/@fontsource/roboto-condensed/**/*",
+      "!node_modules/@fontsource/**/*.woff",
+      "!**/*.map"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowElevation": false,
+      "runAfterFinish": true,
+      "deleteAppDataOnUninstall": false
+    }
+  },
+  "dependencies": {
+    "@fontsource/pixelify-sans": "^5.3.0",
+    "@fontsource/roboto-condensed": "^5.3.0"
+  },
+  "devDependencies": {
+    "electron": "^45.4.1",
+    "electron-builder": "^26.18.0"
+  }
+}

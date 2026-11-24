@@ -1,0 +1,14 @@
+{
+  "server": {
+    "host": "localhost",
+    "port": 25565
+  },
+  "nickCheckUrl": "http://localhost:8765/nick/{nick}",
+  "maintenance": {
+    "enabled": false,
+    "message": {
+      "ru": "Сервер на техработах, скоро вернёмся.",
+      "en": "The server is under maintenance, back soon."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+name: NickCheck
+version: '${version}'
+main: com.milsim.nickcheck.NickCheckPlugin
+api-version: '1.20'
+depend: [AuthMe]
+description: Отвечает лаунчеру, занят ли ник в AuthMe
