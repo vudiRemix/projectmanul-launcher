@@ -11,6 +11,7 @@
     "test": "node --test test/core.test.js",
     "cli": "node src/cli.js",
     "keygen": "node tools/keygen.js",
+    "check-key": "node tools/check-key.js",
     "release": "node tools/publish.js",
     "dist": "electron-builder --win nsis"
   },

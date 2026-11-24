@@ -237,13 +237,14 @@ async function publishGitHub(cfg, files) {
     if (toUpload.size) process.stdout.write('\n');
 
     if (inst) {
+      // Установщик кладётся в каждый релиз под одним именем, чтобы ссылка
+      // .../releases/latest/download/<имя> для игроков всегда вела на свежую версию.
       if (!fs.existsSync(inst)) throw new Error(`установщик лаунчера не найден: ${inst}`);
       const buf = fs.readFileSync(inst);
       const sha = crypto.createHash('sha256').update(buf).digest('hex');
-      if (!launcher || launcher.sha256 !== sha) {
-        console.log(`Загружаю установщик лаунчера ${cfg.launcher.version}…`);
-        launcher = { version: cfg.launcher.version, size: buf.length, sha256: sha, url: await upload(`launcher-setup-${cfg.launcher.version}.exe`, buf) };
-      }
+      const name = cfg.launcher.assetName || 'ProjectManul-Setup.exe';
+      console.log(`Загружаю установщик лаунчера ${cfg.launcher.version} (${(buf.length / 1048576).toFixed(0)} МБ)…`);
+      launcher = { version: cfg.launcher.version, size: buf.length, sha256: sha, url: await upload(name, buf) };
     }
 
     const urlFor = (f) => urls.get(f.sha256) || reuse.get(`${f.sha256}:${f.size}`);

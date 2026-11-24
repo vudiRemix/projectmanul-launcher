@@ -7,7 +7,7 @@
 Отвечает лаунчеру, зарегистрирован ли ник в AuthMe: `GET /nick/<ник>` → `{"registered": true|false}`.
 Работает через официальный API AuthMe, поэтому доступ к MySQL ему не нужен.
 
-1. `server/nickcheck-plugin/build/libs/NickCheck-1.0.0.jar` (после сборки) → в папку `plugins/` сервера.
+1. `server/prebuilt/NickCheck-1.0.0.jar` (или своя сборка из `nickcheck-plugin/build/libs`) → в папку `plugins/` сервера.
 2. Запустите сервер, поправьте `plugins/NickCheck/config.yml` (порт по умолчанию 8765).
 3. В `config.json` репозитория: `"nickCheckUrl": "http://<адрес-сервера>:8765/nick/{nick}"`.
 4. Когда будете открывать сервер наружу — пробросьте и этот порт.
@@ -19,7 +19,7 @@
 При входе сверяет список модов клиента с модами сервера. Лишние — кик с их списком.
 Клиентам этот мод ставить не нужно.
 
-1. `server/modcheck-mod/build/libs/modcheck-1.0.0.jar` (после сборки) → в папку `mods/` сервера.
+1. `server/prebuilt/modcheck-1.0.0.jar` (или своя сборка из `modcheck-mod/build/libs`) → в папку `mods/` сервера.
 2. После первого запуска откройте `config/modcheck-server.toml` и впишите в `allowedClientMods`
    id клиентских модов из сборки, которых нет на сервере (миникарта, Oculus и т.п.). Узнать id
    проще всего так: зайдите своим клиентом — в логе сервера будет строка

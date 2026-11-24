@@ -1,11 +1,12 @@
 {
   "repo": "vudiRemix/projectmanul-launcher",
-  "source": "C:/Users/Admin/Documents/client-build",
+  "source": "C:/ProjectManul/client",
   "include": [
     "mods",
     "config",
     "defaultconfigs",
     "resourcepacks",
+    "tacz",
     "options.txt"
   ],
   "exclude": [
@@ -26,6 +27,7 @@
   "privateKey": "keys/manifest-private.pem",
   "launcher": {
     "version": "1.0.0",
-    "installer": ""
+    "installer": "dist/Project Manul Launcher Setup 1.0.0.exe",
+    "assetName": "ProjectManul-Setup.exe"
   }
 }
