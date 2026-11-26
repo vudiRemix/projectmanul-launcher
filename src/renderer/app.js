@@ -490,7 +490,6 @@
       renderSteps();
     });
     api.onLog(onLogLine);
-    api.onUpdate((u) => toast(t('updating', { version: u.version })));
     api.onGameState((s) => {
       state.running = s.running;
       renderPlayButton();
@@ -524,7 +523,6 @@
     renderPlayButton();
     loadRemote().catch(() => {});
     window.setInterval(refreshServer, 30000);
-    api.checkUpdate().catch(() => {});
   }
 
   init();

@@ -62,7 +62,7 @@ function start() {
   });
   logger.on('line', (line) => send('log:line', line));
 
-  function createWindow() {
+  function createWindow(onShown) {
     win = new BrowserWindow({
       width: 1100,
       height: 660,
@@ -82,7 +82,10 @@ function start() {
       },
     });
     win.removeMenu();
-    win.once('ready-to-show', () => win.show());
+    win.once('ready-to-show', () => {
+      win.show();
+      if (onShown) onShown();
+    });
     // Только при npm start: Ctrl+R перезагружает интерфейс, F12 — инструменты разработчика.
     if (!app.isPackaged) {
       win.webContents.on('before-input-event', (e, input) => {
@@ -188,19 +191,6 @@ function start() {
     return settings.update({ gameDir: res.filePaths[0] });
   });
 
-  ipcMain.handle('update:check', async () =>
-    asResult(async () => {
-      if (!config.configured || !app.isPackaged) return { update: false };
-      const { manifest } = await getManifest(config, game.paths());
-      if (!needsUpdate(manifest, app.getVersion())) return { update: false };
-      logger.log(`Обновляю лаунчер до ${manifest.launcher.version}`);
-      send('update:progress', { version: manifest.launcher.version });
-      await downloadAndRunUpdate(manifest, app.getPath('temp'));
-      setTimeout(() => app.quit(), 500);
-      return { update: true, version: manifest.launcher.version };
-    }),
-  );
-
   ipcMain.handle('window:minimize', () => win && win.minimize());
   ipcMain.handle('window:close', () => {
     // Пока идёт загрузка — отменяем её, игру не трогаем.
@@ -219,5 +209,129 @@ function start() {
     if (!game.running) app.quit();
   });
 
-  app.whenReady().then(createWindow);
+  // ---------- проверка обновлений до открытия лаунчера ----------
+
+  function createSplash() {
+    const splash = new BrowserWindow({
+      width: 460,
+      height: 236,
+      resizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      frame: false,
+      show: false,
+      center: true,
+      backgroundColor: '#141414',
+      title: config.projectName,
+      icon: path.join(__dirname, '..', 'renderer', 'assets', 'logo.png'),
+      webPreferences: {
+        preload: path.join(__dirname, 'splash-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        spellcheck: false,
+      },
+    });
+    splash.removeMenu();
+    splash.once('ready-to-show', () => splash.show());
+    splash.webContents.on('will-navigate', (e) => e.preventDefault());
+    splash.loadFile(path.join(__dirname, '..', 'renderer', 'splash.html'));
+    return splash;
+  }
+
+  const SPLASH_TEXT = {
+    ru: {
+      sub: 'Лаунчер',
+      checking: 'Проверяем обновления…',
+      downloading: 'Скачиваем обновление {v}…',
+      installing: 'Устанавливаем обновление…',
+      upToDate: 'Последняя версия',
+      mb: 'МБ',
+    },
+    en: {
+      sub: 'Launcher',
+      checking: 'Checking for updates…',
+      downloading: 'Downloading update {v}…',
+      installing: 'Installing the update…',
+      upToDate: 'Up to date',
+      mb: 'MB',
+    },
+  };
+
+  // true — обновление скачано и запущено, лаунчер сейчас закроется.
+  async function updateBeforeStart(splash) {
+    const lang = settings.get().language || (app.getLocale().toLowerCase().startsWith('ru') ? 'ru' : 'en');
+    const L = SPLASH_TEXT[lang];
+    let last = {};
+    const show = (state) => {
+      last = { name: config.projectName.toUpperCase(), sub: `${L.sub} · v${app.getVersion()}`, ...state };
+      if (!splash.isDestroyed()) splash.webContents.send('splash:state', last);
+    };
+    splash.webContents.on('did-finish-load', () => show(last));
+    show({ text: L.checking });
+
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
+    let result;
+    try {
+      result = await getManifest(config, game.paths(), { signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
+    // Без интернета (манифест из кэша) не обновляемся — просто открываем лаунчер.
+    if (result.offline || !needsUpdate(result.manifest, app.getVersion())) {
+      show({ text: L.upToDate, done: true, percent: 1 });
+      return false;
+    }
+
+    const l = result.manifest.launcher;
+    const mb = (n) => (n / 1048576).toFixed(1);
+    logger.log(`Обновляю лаунчер до ${l.version}`);
+    let got = 0;
+    let sentAt = 0;
+    const text = L.downloading.replace('{v}', l.version);
+    show({ text, percent: 0, detail: `0.0 / ${mb(l.size)} ${L.mb}` });
+    await downloadAndRunUpdate(result.manifest, app.getPath('temp'), {
+      onProgress: (n) => {
+        got = Math.max(0, got + n);
+        if (Date.now() - sentAt < 100) return;
+        sentAt = Date.now();
+        show({ text, percent: Math.min(1, got / l.size), detail: `${mb(got)} / ${mb(l.size)} ${L.mb}` });
+      },
+    });
+    show({ text: L.installing });
+    setTimeout(() => app.quit(), 1500);
+    return true;
+  }
+
+  async function launch() {
+    // При npm start окно проверки не показываем (MILSIM_SPLASH=1 — показать для проверки).
+    if (!config.configured || !(app.isPackaged || process.env.MILSIM_SPLASH)) return createWindow();
+    const splash = createSplash();
+    const shownAt = Date.now();
+    if (process.env.MILSIM_SPLASH_SHOT) {
+      splash.webContents.once('did-finish-load', () =>
+        setTimeout(async () => {
+          if (splash.isDestroyed()) return logger.log('снимок окна обновления: окно уже закрыто');
+          try {
+            require('fs').writeFileSync(process.env.MILSIM_SPLASH_SHOT, (await splash.webContents.capturePage()).toPNG());
+          } catch (err) {
+            logger.log(`снимок окна обновления не удался: ${err.message}`);
+          }
+        }, Number(process.env.MILSIM_SPLASH_SHOT_DELAY || 400)),
+      );
+    }
+    try {
+      if (await updateBeforeStart(splash)) return;
+    } catch (err) {
+      // Обновление не должно мешать играть: при любой ошибке открываем лаунчер как есть.
+      logger.log(`Проверка обновлений лаунчера не удалась: ${err.message}`);
+    }
+    await new Promise((r) => setTimeout(r, Math.max(0, 900 - (Date.now() - shownAt))));
+    createWindow(() => {
+      if (!splash.isDestroyed()) splash.destroy();
+    });
+  }
+
+  app.whenReady().then(launch);
 }

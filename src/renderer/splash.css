@@ -1,0 +1,60 @@
+/* Окно проверки обновлений перед запуском лаунчера — те же цвета, что в styles.css. */
+:root {
+  --bg: #141414;
+  --track: #222222;
+  --line: #2b2b2b;
+  --line-2: #3a3a3a;
+  --text: #ededed;
+  --muted: #a6a6a6;
+  --accent: #f5951b;
+  --accent-deep: #b86a0a;
+  --accent-text: #ffb24d;
+  --bronze: #8a6b2c;
+  --pixel: 'Pixelify Sans', monospace;
+  --body: 'Roboto Condensed', 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  overflow: hidden;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.splash {
+  height: 100%;
+  padding: 30px 28px 0;
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--accent);
+}
+
+.head { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.logo { width: 52px; height: 52px; image-rendering: pixelated; }
+.name { font-family: var(--pixel); font-weight: 700; font-size: 26px; letter-spacing: 1px; line-height: 1; }
+.sub { display: flex; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; }
+.dash { width: 18px; height: 2px; background: var(--bronze); }
+
+.status { margin-top: 22px; font-size: 17px; font-weight: 700; }
+.status.done { color: var(--accent-text); }
+
+.bar { position: relative; height: 12px; margin-top: 14px; background: var(--track); outline: 1px solid var(--line-2); overflow: hidden; }
+.fill {
+  height: 100%;
+  width: 0;
+  background-color: var(--accent);
+  background-image: repeating-linear-gradient(-45deg, transparent 0 12px, rgba(184, 106, 10, 0.45) 12px 24px);
+  background-size: 34px 100%;
+  transition: width 0.2s linear;
+  animation: stripes 0.8s linear infinite;
+}
+.bar.indeterminate .fill { width: 100%; transition: none; }
+
+@keyframes stripes { to { background-position: 34px 0; } }
+
+.detail { display: flex; justify-content: space-between; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.pct { color: var(--accent-text); font-weight: 700; }

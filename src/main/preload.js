@@ -24,12 +24,10 @@ contextBridge.exposeInMainWorld('launcher', {
   openLogs: invoke('logs:open'),
   openGameDir: invoke('dir:open'),
   chooseGameDir: invoke('dir:choose'),
-  checkUpdate: invoke('update:check'),
   minimize: invoke('window:minimize'),
   close: invoke('window:close'),
   onProgress: on('game:progress'),
   onSteps: on('game:steps'),
   onGameState: on('game:state'),
   onLog: on('log:line'),
-  onUpdate: on('update:progress'),
 });

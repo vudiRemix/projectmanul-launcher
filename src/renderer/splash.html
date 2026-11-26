@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'">
+<title>Project Manul</title>
+<link rel="stylesheet" href="../../node_modules/@fontsource/pixelify-sans/700.css">
+<link rel="stylesheet" href="../../node_modules/@fontsource/roboto-condensed/400.css">
+<link rel="stylesheet" href="../../node_modules/@fontsource/roboto-condensed/700.css">
+<link rel="stylesheet" href="splash.css">
+</head>
+<body>
+<div class="splash">
+  <div class="head">
+    <img class="logo" src="assets/logo.png" alt="">
+    <div>
+      <div class="name" id="name"></div>
+      <div class="sub"><span class="dash"></span><span id="sub"></span></div>
+    </div>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="bar indeterminate" id="bar"><div class="fill" id="fill"></div></div>
+  <div class="detail"><span id="detail"></span><span class="pct" id="pct"></span></div>
+</div>
+<script src="splash.js"></script>
+</body>
+</html>

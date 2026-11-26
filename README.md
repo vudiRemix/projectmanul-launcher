@@ -10,7 +10,7 @@ Electron-приложение под Windows: вход по нику, устан
 launcher.config.json      адреса манифеста, новостей и публичный ключ — вшивается в лаунчер
 src/core/                 логика без интерфейса (работает и из консоли: src/cli.js)
 src/main/                 главный процесс Electron
-src/renderer/             интерфейс по макету
+src/renderer/             интерфейс по макету; splash.* — окно проверки обновлений перед запуском
 tools/keygen.js           создать ключ подписи (сам вписывает publicKey в launcher.config.json)
 tools/publish.js          выпустить новую версию сборки на GitHub
 bootstrapper/             загрузчик ProjectManul-Install.exe (C#, 52 КБ): скачивает установщик,
