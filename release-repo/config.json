@@ -10,5 +10,10 @@
       "ru": "Сервер на техработах, скоро вернёмся.",
       "en": "The server is under maintenance, back soon."
     }
+  },
+  "discord": {
+    "clientId": "",
+    "image": "logo",
+    "inviteUrl": ""
   }
 }

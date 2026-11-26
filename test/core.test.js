@@ -169,3 +169,67 @@ test('полный цикл: публикация локально → уста�
   fs.writeFileSync(path.join(out, 'manifest.json'), tampered);
   await assert.rejects(getManifest(config, createPaths(path.join(work, 'game2'))), /Подпись/);
 });
+
+test('статус Discord: рукопожатие, SET_ACTIVITY, PING и очистка при выходе', async () => {
+  const net = require('net');
+  const { DiscordPresence } = require('../src/core/discord');
+  const pipe = (i) => (process.platform === 'win32' ? `\\\\?\\pipe\\milsim-test-discord-${process.pid}-${i}` : path.join(tmp(), `ipc-${i}`));
+  const frames = [];
+  let gotPong = null;
+  const server = net.createServer((sock) => {
+    let buf = Buffer.alloc(0);
+    const send = (op, data) => {
+      const json = Buffer.from(JSON.stringify(data));
+      const head = Buffer.alloc(8);
+      head.writeInt32LE(op, 0);
+      head.writeInt32LE(json.length, 4);
+      sock.write(Buffer.concat([head, json]));
+    };
+    sock.on('data', (chunk) => {
+      buf = Buffer.concat([buf, chunk]);
+      while (buf.length >= 8 && buf.length >= 8 + buf.readInt32LE(4)) {
+        const op = buf.readInt32LE(0);
+        const len = buf.readInt32LE(4);
+        const msg = JSON.parse(buf.subarray(8, 8 + len).toString());
+        buf = buf.subarray(8 + len);
+        frames.push({ op, msg });
+        if (op === 0) {
+          send(1, { cmd: 'DISPATCH', evt: 'READY', data: { v: 1 } });
+          send(3, { ping: 42 });
+        }
+        if (op === 4) gotPong = msg;
+      }
+    });
+    sock.on('error', () => {});
+  });
+  // Слушаем на третьем канале: первые два пусты, лаунчер должен их перебрать.
+  await new Promise((r) => server.listen(pipe(2), r));
+  const p = new DiscordPresence({ pipeName: pipe });
+  p.set({ details: 'Играет на сервере', state: 'Онлайн', party: [3, 100], start: 1000, image: 'logo', buttons: [{ label: 'Скачать', url: 'https://example.com/a.exe' }, { label: 'плохая', url: 'http://x' }] });
+  p.setClientId('123456789012345678');
+  const waitFor = async (fn) => {
+    for (let i = 0; i < 100 && !fn(); i += 1) await new Promise((r) => setTimeout(r, 20));
+    assert.ok(fn());
+  };
+  await waitFor(() => frames.some((f) => f.msg.cmd === 'SET_ACTIVITY') && gotPong);
+  assert.deepStrictEqual(frames[0], { op: 0, msg: { v: 1, client_id: '123456789012345678' } });
+  const act = frames.find((f) => f.msg.cmd === 'SET_ACTIVITY').msg.args;
+  assert.strictEqual(act.pid, process.pid);
+  assert.strictEqual(act.activity.details, 'Играет на сервере');
+  assert.deepStrictEqual(act.activity.party.size, [3, 100]);
+  assert.deepStrictEqual(act.activity.timestamps, { start: 1000 });
+  assert.deepStrictEqual(act.activity.buttons, [{ label: 'Скачать', url: 'https://example.com/a.exe' }]);
+  assert.deepStrictEqual(gotPong, { ping: 42 });
+  p.stop();
+  await waitFor(() => frames.filter((f) => f.msg.cmd === 'SET_ACTIVITY').length === 2);
+  assert.strictEqual(frames.filter((f) => f.msg.cmd === 'SET_ACTIVITY')[1].msg.args.activity, null);
+  server.close();
+});
+
+test('cleanRemote: настройки Discord', () => {
+  assert.deepStrictEqual(cleanRemote({}).discord, { clientId: '', image: 'logo', inviteUrl: '' });
+  const d = cleanRemote({ discord: { clientId: ' 123456789012345678 ', image: 'manul', inviteUrl: 'https://discord.gg/abc' } }).discord;
+  assert.deepStrictEqual(d, { clientId: '123456789012345678', image: 'manul', inviteUrl: 'https://discord.gg/abc' });
+  assert.strictEqual(cleanRemote({ discord: { clientId: 'abc', inviteUrl: 'https://evil.com/x' } }).discord.clientId, '');
+  assert.strictEqual(cleanRemote({ discord: { inviteUrl: 'https://evil.com/x' } }).discord.inviteUrl, '');
+});

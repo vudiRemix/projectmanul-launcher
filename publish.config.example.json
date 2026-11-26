@@ -26,8 +26,7 @@
   "forge": "47.3.0",
   "privateKey": "keys/manifest-private.pem",
   "launcher": {
-    "version": "1.0.0",
-    "installer": "dist/Project Manul Launcher Setup 1.0.0.exe",
+    "installer": "dist/Project Manul Launcher Setup {version}.exe",
     "assetName": "ProjectManul-Setup.exe"
   }
 }

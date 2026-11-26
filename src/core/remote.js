@@ -8,6 +8,7 @@ const DEFAULT_REMOTE = {
   server: { host: 'localhost', port: 25565 },
   nickCheckUrl: '',
   maintenance: { enabled: false, message: '' },
+  discord: { clientId: '', image: 'logo', inviteUrl: '' },
 };
 
 function cleanRemote(raw) {
@@ -22,6 +23,13 @@ function cleanRemote(raw) {
   r.maintenance = {
     enabled: Boolean(r.maintenance && r.maintenance.enabled),
     message: (r.maintenance && r.maintenance.message) || '',
+  };
+  // Статус в Discord: clientId — Application ID приложения в Discord Developer Portal.
+  const d = r.discord || {};
+  r.discord = {
+    clientId: typeof d.clientId === 'string' && /^\d{15,25}$/.test(d.clientId.trim()) ? d.clientId.trim() : '',
+    image: typeof d.image === 'string' && /^[\w.-]{1,64}$/.test(d.image) ? d.image : 'logo',
+    inviteUrl: typeof d.inviteUrl === 'string' && /^https:\/\/(discord\.gg|discord\.com\/invite)\/[\w-]+$/.test(d.inviteUrl.trim()) ? d.inviteUrl.trim() : '',
   };
   return r;
 }

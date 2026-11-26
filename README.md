@@ -65,9 +65,16 @@ npm run release -- --notes "Обновили TACZ, добавили карту"
 npm run dist
 ```
 
-Готовый `dist/Project Manul Launcher Setup 1.0.0.exe` ставится без прав администратора. Для самообновления:
-поднимите `version` в `package.json`, соберите, укажите путь в `publish.config.json` → `launcher.installer`
-и выпустите сборку — лаунчеры игроков обновятся при следующем запуске.
+Готовый `dist/Project Manul Launcher Setup <версия>.exe` ставится без прав администратора. Для самообновления:
+поднимите `version` в `package.json`, соберите и выпустите сборку — лаунчеры игроков обновятся при
+следующем запуске. В `publish.config.json` → `launcher.installer` стоит путь с `{version}`: версию
+`publish.js` берёт из `package.json` и не выпустит установщик со старым номером в имени.
+
+## Статус в Discord
+
+`src/core/discord.js` показывает «Играет в Project Manul» через локальный IPC Discord (без библиотек).
+Включается полем `discord.clientId` в `release-repo/config.json` (Application ID из Discord Developer
+Portal, картинка с ключом `logo` в Rich Presence → Art Assets); пустое поле — выключено.
 
 Без сертификата подписи кода Windows SmartScreen покажет предупреждение при первой установке.
 

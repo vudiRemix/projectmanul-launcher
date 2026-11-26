@@ -71,7 +71,18 @@ function loadConfig() {
   const abs = (p) => (p ? path.resolve(base, p) : p);
   cfg.source = abs(cfg.source);
   cfg.privateKey = abs(cfg.privateKey);
-  if (cfg.launcher && cfg.launcher.installer) cfg.launcher.installer = abs(cfg.launcher.installer);
+  if (cfg.launcher && cfg.launcher.installer) {
+    // Версия лаунчера всегда из package.json: её поднимают перед npm run dist.
+    // "{version}" в пути подставляется сам, чтобы не править конфиг при каждом обновлении.
+    const pkgVersion = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version;
+    cfg.launcher.installer = abs(cfg.launcher.installer.replace('{version}', pkgVersion));
+    const named = path.basename(cfg.launcher.installer).match(/\d+\.\d+\.\d+/);
+    // Старый установщик под новым номером зациклил бы обновление у всех игроков.
+    if (named && named[0] !== pkgVersion) {
+      die(`в "launcher.installer" указан установщик ${named[0]}, а в package.json версия ${pkgVersion}. Соберите заново (npm run dist) и впишите путь с {version}: "dist/Project Manul Launcher Setup {version}.exe"`);
+    }
+    cfg.launcher.version = pkgVersion;
+  }
   for (const key of ['source', 'privateKey', 'minecraft', 'forge']) if (!cfg[key]) die(`в ${cfgPath} не заполнено поле "${key}"`);
   if (!Array.isArray(cfg.include) || cfg.include.length === 0) die('поле "include" должно быть списком папок/файлов');
   if (!fs.existsSync(cfg.source)) die(`папка сборки не найдена: ${cfg.source}`);

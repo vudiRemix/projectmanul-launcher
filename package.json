@@ -1,7 +1,7 @@
 {
   "name": "projectmanul-launcher",
   "productName": "Project Manul Launcher",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Лаунчер милсим-сервера: установка сборки, проверка файлов и запуск Minecraft 1.20.1 + Forge",
   "main": "src/main/main.js",
   "private": true,

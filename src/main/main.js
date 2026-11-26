@@ -9,6 +9,7 @@ const { loadRemoteConfig, loadNews } = require('../core/remote');
 const { pingServer, checkNick, NICK_RE } = require('../core/server');
 const { getManifest } = require('../core/manifest');
 const { needsUpdate, downloadAndRunUpdate } = require('../core/updater');
+const { DiscordPresence } = require('../core/discord');
 
 const APP_ROOT = path.join(__dirname, '..', '..');
 
@@ -48,11 +49,62 @@ function start() {
   };
   game.on('progress', (p) => send('game:progress', p));
   game.on('steps', (s) => send('game:steps', s));
+  // ---------- статус в Discord ----------
+  const discord = new DiscordPresence({ logger });
+  const DISCORD_TEXT = {
+    ru: { launcher: 'В лаунчере', playing: 'Играет на сервере', online: 'Онлайн', get: 'Скачать лаунчер', join: 'Discord проекта' },
+    en: { launcher: 'In the launcher', playing: 'Playing on the server', online: 'Online', get: 'Get the launcher', join: 'Project Discord' },
+  };
+  const launcherStartedAt = Date.now();
+  let gameStartedAt = 0;
+  let serverOnline = null;
+  let presenceTimer = null;
+
+  function updatePresence() {
+    if (!remote || !remote.discord) return;
+    discord.setClientId(remote.discord.clientId);
+    if (!remote.discord.clientId) return;
+    const lang = settings.get().language || (app.getLocale().toLowerCase().startsWith('ru') ? 'ru' : 'en');
+    const T = DISCORD_TEXT[lang] || DISCORD_TEXT.ru;
+    // Ссылка на загрузчик лежит в том же релизе, что и манифест.
+    const buttons = [{ label: T.get, url: config.manifestUrl.replace(/[^/]+$/, 'ProjectManul-Install.exe') }];
+    if (remote.discord.inviteUrl) buttons.push({ label: T.join, url: remote.discord.inviteUrl });
+    const playing = game.running;
+    discord.set({
+      details: playing ? T.playing : T.launcher,
+      state: playing && serverOnline ? T.online : undefined,
+      party: playing && serverOnline ? [serverOnline.players, serverOnline.maxPlayers] : undefined,
+      start: playing ? gameStartedAt : launcherStartedAt,
+      image: remote.discord.image,
+      imageText: config.projectName,
+      buttons,
+    });
+  }
+
+  async function refreshOnline() {
+    try {
+      const s = await pingServer(remote.server.host, remote.server.port);
+      serverOnline = s && s.online && s.maxPlayers ? s : null;
+    } catch {
+      serverOnline = null;
+    }
+    updatePresence();
+  }
+
   game.on('game-start', () => {
     send('game:state', { running: true });
     if (win) win.hide();
+    gameStartedAt = Date.now();
+    updatePresence();
+    if (remote && remote.discord && remote.discord.clientId) {
+      refreshOnline();
+      presenceTimer = setInterval(refreshOnline, 60000);
+    }
   });
   game.on('game-exit', (e) => {
+    clearInterval(presenceTimer);
+    serverOnline = null;
+    updatePresence();
     lastCrash = e.crash;
     if (win) {
       win.show();
@@ -130,7 +182,9 @@ function start() {
       // Папку игры нельзя менять, пока идёт загрузка или игра запущена.
       if (patch && 'gameDir' in patch) delete patch.gameDir;
     }
-    return settings.update(patch || {});
+    const next = settings.update(patch || {});
+    if (patch && 'language' in patch) updatePresence();
+    return next;
   });
 
   ipcMain.handle('remote:load', async () => {
@@ -138,6 +192,7 @@ function start() {
     if (!config.configured) return { remote: null, news: { items: [] } };
     const [r, news] = await Promise.all([loadRemoteConfig(config, cacheDir), loadNews(config, cacheDir)]);
     remote = r;
+    updatePresence();
     return { remote: r, news };
   });
 
@@ -170,7 +225,10 @@ function start() {
       if (!config.configured) throw new Error('Лаунчер не настроен');
       const s = settings.get();
       if (!NICK_RE.test(s.nick)) throw new Error('Сначала введите ник');
-      if (!remote) remote = await loadRemoteConfig(config, game.paths().internal);
+      if (!remote) {
+        remote = await loadRemoteConfig(config, game.paths().internal);
+        updatePresence();
+      }
       return game.play(remote);
     }),
   );
@@ -205,6 +263,7 @@ function start() {
       win.focus();
     }
   });
+  app.on('before-quit', () => discord.stop());
   app.on('window-all-closed', () => {
     if (!game.running) app.quit();
   });
