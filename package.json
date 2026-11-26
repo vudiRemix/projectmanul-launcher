@@ -13,7 +13,8 @@
     "keygen": "node tools/keygen.js",
     "check-key": "node tools/check-key.js",
     "release": "node tools/publish.js",
-    "dist": "electron-builder --win nsis"
+    "dist": "electron-builder --win nsis",
+    "bootstrapper": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-bootstrapper.ps1"
   },
   "build": {
     "appId": "com.projectmanul.launcher",

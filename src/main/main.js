@@ -83,6 +83,14 @@ function start() {
     });
     win.removeMenu();
     win.once('ready-to-show', () => win.show());
+    // Только при npm start: Ctrl+R перезагружает интерфейс, F12 — инструменты разработчика.
+    if (!app.isPackaged) {
+      win.webContents.on('before-input-event', (e, input) => {
+        if (input.type !== 'keyDown') return;
+        if (input.control && input.key.toLowerCase() === 'r') win.webContents.reload();
+        else if (input.key === 'F12') win.webContents.toggleDevTools({ mode: 'detach' });
+      });
+    }
     // Внешние ссылки (новости) открываем в браузере, навигацию внутри окна запрещаем.
     win.webContents.setWindowOpenHandler(({ url }) => {
       if (url.startsWith('https://')) shell.openExternal(url);

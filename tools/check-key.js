@@ -4,6 +4,7 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const LEAKED = require('./leaked-keys');
 
 const root = path.join(__dirname, '..');
 const keyFile = path.join(root, 'keys', 'manifest-private.pem');
@@ -16,6 +17,10 @@ const actual = crypto
   .createPublicKey(crypto.createPrivateKey(fs.readFileSync(keyFile)))
   .export({ type: 'spki', format: 'der' })
   .toString('base64');
+if (LEAKED.includes(actual)) {
+  console.error('Этот ключ засвечен (его пересылали открытым текстом). Создайте новый: npm run keygen -- --replace');
+  process.exit(1);
+}
 if (actual === expected) {
   console.log('Ключ верный — лаунчеры примут сборки, подписанные им.');
 } else {

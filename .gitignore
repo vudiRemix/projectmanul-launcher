@@ -11,3 +11,6 @@ release-local/
 server/**/build/
 server/**/.gradle/
 server/**/run/
+
+# Загрузчик: промежуточные файлы сборки
+bootstrapper/obj/

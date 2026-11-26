@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const LEAKED = require('./leaked-keys');
 
 function arg(name, def) {
   const i = process.argv.indexOf(`--${name}`);
@@ -76,6 +77,8 @@ function loadConfig() {
   if (!fs.existsSync(cfg.source)) die(`папка сборки не найдена: ${cfg.source}`);
   if (!fs.existsSync(cfg.privateKey)) die(`приватный ключ не найден: ${cfg.privateKey} (создайте: npm run keygen)`);
   cfg.cleanDirs = cfg.cleanDirs || ['mods'];
+  cfg.publicKey = crypto.createPublicKey(crypto.createPrivateKey(fs.readFileSync(cfg.privateKey))).export({ type: 'spki', format: 'der' }).toString('base64');
+  if (LEAKED.includes(cfg.publicKey)) die('этот ключ подписи засвечен. Создайте новый: npm run keygen -- --replace, затем пересоберите установщик (npm run dist)');
   return cfg;
 }
 
@@ -189,7 +192,11 @@ async function publishGitHub(cfg, files) {
   const token = process.env.GITHUB_TOKEN;
   if (!cfg.repo || !/^[\w.-]+\/[\w.-]+$/.test(cfg.repo)) die('в конфиге не указан repo вида "владелец/репозиторий"');
   const dryRun = Boolean(arg('dry-run'));
-  if (!token && !dryRun) die('задайте переменную GITHUB_TOKEN (Settings → Developer settings → Fine-grained token, доступ Contents: write)');
+  if (!token && !dryRun) die('задайте переменную GITHUB_TOKEN: $env:GITHUB_TOKEN = "..." (как создать токен — ИНСТРУКЦИЯ.md, пункт 1.5)');
+
+  // Сборку, подписанную не тем ключом, лаунчеры отклонят — проверяем заранее.
+  const launcherCfg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'launcher.config.json'), 'utf8'));
+  if (launcherCfg.publicKey !== cfg.publicKey) die('ключ в keys/ не подходит к "publicKey" в launcher.config.json — проверьте: npm run check-key');
 
   const prev = await previousManifest(cfg.repo);
   const prefix = `https://github.com/${cfg.repo}/releases/download/`;
@@ -245,6 +252,14 @@ async function publishGitHub(cfg, files) {
       const name = cfg.launcher.assetName || 'ProjectManul-Setup.exe';
       console.log(`Загружаю установщик лаунчера ${cfg.launcher.version} (${(buf.length / 1048576).toFixed(0)} МБ)…`);
       launcher = { version: cfg.launcher.version, size: buf.length, sha256: sha, url: await upload(name, buf) };
+    }
+
+    // Загрузчик (маленький exe в стиле лаунчера, который игроки скачивают по ссылке) — тот же
+    // файл в каждом релизе, чтобы ссылка .../latest/download/ProjectManul-Install.exe не ломалась.
+    const boot = path.join(__dirname, '..', 'bootstrapper', 'ProjectManul-Install.exe');
+    if (fs.existsSync(boot)) {
+      console.log('Загружаю загрузчик ProjectManul-Install.exe…');
+      await upload('ProjectManul-Install.exe', fs.readFileSync(boot));
     }
 
     const urlFor = (f) => urls.get(f.sha256) || reuse.get(`${f.sha256}:${f.size}`);
