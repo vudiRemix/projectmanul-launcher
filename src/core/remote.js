@@ -7,6 +7,7 @@ const { fetchJson } = require('./http');
 const DEFAULT_REMOTE = {
   server: { host: 'localhost', port: 25565 },
   nickCheckUrl: '',
+  autoConnect: false,
   maintenance: { enabled: false, message: '' },
   discord: { clientId: '', image: 'logo', inviteUrl: '' },
 };
@@ -20,6 +21,8 @@ function cleanRemote(raw) {
     port: Number.isInteger(port) && port > 0 && port < 65536 ? port : 25565,
   };
   r.nickCheckUrl = typeof r.nickCheckUrl === 'string' && /^https?:\/\//.test(r.nickCheckUrl) && r.nickCheckUrl.includes('{nick}') ? r.nickCheckUrl : '';
+  // true — игра сразу заходит на сервер; false — открывается главное меню.
+  r.autoConnect = r.autoConnect === true;
   r.maintenance = {
     enabled: Boolean(r.maintenance && r.maintenance.enabled),
     message: (r.maintenance && r.maintenance.message) || '',

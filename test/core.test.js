@@ -233,3 +233,32 @@ test('cleanRemote: настройки Discord', () => {
   assert.strictEqual(cleanRemote({ discord: { clientId: 'abc', inviteUrl: 'https://evil.com/x' } }).discord.clientId, '');
   assert.strictEqual(cleanRemote({ discord: { inviteUrl: 'https://evil.com/x' } }).discord.inviteUrl, '');
 });
+
+test('servers.dat: сервер проекта первым, свои серверы игрока на месте', async () => {
+  const { readNbt, writeNbt, ensureServerListed, T } = require('../src/core/servers');
+  const dir = tmp();
+  const srv = (name, ip, extra = []) => [{ name: 'name', type: T.STRING, value: name }, { name: 'ip', type: T.STRING, value: ip }, ...extra];
+  const icon = { name: 'icon', type: T.STRING, value: 'iVBOR' };
+  const root = {
+    name: '',
+    value: [{ name: 'servers', type: T.LIST, value: { itemType: T.COMPOUND, items: [srv('Мой', 'my.server'), srv('Старое имя', 'PLAY.manul.ru:25565', [icon])] } }],
+  };
+  fs.writeFileSync(path.join(dir, 'servers.dat'), writeNbt(root));
+  assert.strictEqual(await ensureServerListed(dir, { name: 'Project Manul', host: 'play.manul.ru', port: 25565 }), true);
+  const names = (d) => readNbt(fs.readFileSync(path.join(d, 'servers.dat'))).value[0].value.items.map((it) => Object.fromEntries(it.map((e) => [e.name, e.value])));
+  assert.deepStrictEqual(names(dir), [{ name: 'Project Manul', ip: 'play.manul.ru', icon: 'iVBOR' }, { name: 'Мой', ip: 'my.server' }]);
+  assert.strictEqual(await ensureServerListed(dir, { name: 'Project Manul', host: 'play.manul.ru', port: 25565 }), false);
+  const fresh = tmp();
+  await ensureServerListed(fresh, { name: 'Project Manul', host: '1.2.3.4', port: 25570 });
+  assert.deepStrictEqual(names(fresh), [{ name: 'Project Manul', ip: '1.2.3.4:25570' }]);
+  // Испорченный файл не трогаем.
+  fs.writeFileSync(path.join(fresh, 'servers.dat'), Buffer.from([10, 0]));
+  await assert.rejects(ensureServerListed(fresh, { name: 'X', host: 'a.b', port: 25565 }));
+  assert.deepStrictEqual([...fs.readFileSync(path.join(fresh, 'servers.dat'))], [10, 0]);
+});
+
+test('cleanRemote: autoConnect выключен, пока не указан true', () => {
+  assert.strictEqual(cleanRemote({}).autoConnect, false);
+  assert.strictEqual(cleanRemote({ autoConnect: 'yes' }).autoConnect, false);
+  assert.strictEqual(cleanRemote({ autoConnect: true }).autoConnect, true);
+});

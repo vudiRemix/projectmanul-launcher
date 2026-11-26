@@ -14,6 +14,7 @@ const { loadVanillaVersion, planVanillaFiles, planAssets } = require('./minecraf
 const { ensureForge, planForgeLibraries } = require('./forge');
 const { planBuildFiles, filterOnce, cleanManagedDirs } = require('./modpack');
 const { buildLaunch } = require('./launch');
+const { ensureServerListed } = require('./servers');
 
 const STEPS = ['java', 'minecraft', 'build', 'verify', 'launch'];
 const MAX_CMDLINE = 30000;
@@ -112,13 +113,22 @@ class GameManager extends EventEmitter {
       const settings = this.settings.get();
       const ctx = await this.prepare({ signal: this.controller.signal });
       this.step('launch', 'active');
+      // Игра открывается в главном меню, а сервер проекта уже стоит первым в «Сетевой игре».
+      // Сразу на сервер — только если в release-repo/config.json "autoConnect": true.
+      if (remote && remote.server) {
+        try {
+          await ensureServerListed(ctx.paths.gameDir, { name: this.config.projectName, ...remote.server });
+        } catch (err) {
+          this.log(`Список серверов не обновлён: ${err.message}`);
+        }
+      }
       const cmd = await buildLaunch({
         paths: ctx.paths,
         vanilla: ctx.vanilla,
         forgeJson: ctx.forgeJson,
         java: ctx.java,
         settings,
-        server: remote && remote.server,
+        server: remote && remote.autoConnect ? remote.server : null,
         appVersion: this.appVersion,
         launcherName: `${this.config.projectId}-launcher`,
       });
