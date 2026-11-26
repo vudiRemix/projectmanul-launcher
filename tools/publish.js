@@ -237,11 +237,39 @@ async function publishGitHub(cfg, files) {
     const urls = new Map();
     let done = 0;
     await runPool([...toUpload.values()], 3, async (f) => {
-      urls.set(f.sha256, await upload(assetName(f.sha256, f.rel), fs.readFileSync(f.abs)));
-      done += 1;
-      process.stdout.write(`\r  загружено ${done}/${toUpload.size}   `);
+      const maxRetries = 3; // Количество попыток
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          // Загружаем файл
+          const url = await upload(assetName(f.sha256, f.rel), fs.readFileSync(f.abs));
+          urls.set(f.sha256, url);
+          done += 1;
+          console.log(`  [${done}/${toUpload.size}] Загружен: ${f.rel} (${(f.size / 1048576).toFixed(1)} МБ)`);
+          break; // Если успешно — выходим из цикла попыток
+        } catch (err) {
+          // Проверяем, не является ли ошибка "файл уже существует" (422 already_exists)
+          if (err.message.includes('422') && err.message.includes('already_exists')) {
+            console.warn(`  ⚠️ Файл ${f.rel} уже был загружен ранее, пропускаю.`);
+            // Считаем, что файл загружен, и генерируем ссылку на него
+            urls.set(f.sha256, `${prefix}${tag}/${encodeURIComponent(assetName(f.sha256, f.rel))}`);
+            done += 1;
+            console.log(`  [${done}/${toUpload.size}] Пропущен (уже был): ${f.rel} (${(f.size / 1048576).toFixed(1)} МБ)`);
+            break; // Выходим, так как файл уже на месте
+          }
+
+          // Если это последняя попытка и ошибка не связана с already_exists
+          if (attempt === maxRetries) {
+            console.error(`\n❌ ОШИБКА при загрузке файла: ${f.rel} (попытка ${attempt}/${maxRetries})`);
+            throw err; // Пробрасываем ошибку, чтобы остановить процесс
+          }
+
+          // Ждём перед следующей попыткой (1 сек, 2 сек...)
+          console.warn(`  ⚠️ Сбой на ${f.rel}, повтор через ${attempt} сек...`);
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
     });
-    if (toUpload.size) process.stdout.write('\n');
+    if (toUpload.size) console.log('');
 
     if (inst) {
       // Установщик кладётся в каждый релиз под одним именем, чтобы ссылка
