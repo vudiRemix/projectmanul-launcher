@@ -1,6 +1,16 @@
 {
   "items": [
     {
+      "date": "2026-11-27",
+      "tag": { "ru": "Привет!", "en": "Hello!" },
+      "title": { "ru": "Тест", "en": "Test" },
+      "text": {
+        "ru": "Обновил лаунчер. тест новость!",
+        "en": "Updated the launcher. test news!"
+      },
+      "image": ""
+    },
+    {
       "date": "2026-11-24",
       "tag": { "ru": "Лаунчер", "en": "Launcher" },
       "title": { "ru": "Запустили лаунчер", "en": "The launcher is live" },
@@ -8,7 +18,7 @@
         "ru": "Теперь сборка ставится и обновляется сама. Нажмите «Играть» — остальное лаунчер сделает за вас.",
         "en": "The modpack now installs and updates itself. Press Play and the launcher does the rest."
       },
-      "image": ""
+      "image": "https://i.pinimg.com/originals/ab/98/71/ab987122fd4f0e67467202781d96e318.jpg"
     }
   ]
 }
